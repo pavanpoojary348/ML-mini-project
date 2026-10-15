@@ -1,0 +1,14 @@
+{
+  "best_validation_macro_f1": 0.5850305420241014,
+  "best_params": {
+    "max_iter": 175,
+    "learning_rate": 0.09249521029256451,
+    "max_leaf_nodes": 24,
+    "min_samples_leaf": 25,
+    "l2_regularization": 2.5736848022558103,
+    "max_bins": 160
+  },
+  "trial_count": 50,
+  "objective": "validation macro-F1",
+  "test_used_for_tuning": false
+}

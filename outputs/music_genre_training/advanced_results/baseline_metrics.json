@@ -1,0 +1,14 @@
+{
+  "model": "RBF SVM C=3",
+  "features": 518,
+  "train_tracks": 6339,
+  "validation_tracks": 794,
+  "accuracy": 0.5617128463476071,
+  "macro_f1": 0.5520315597874746,
+  "baseline_reasoning": [
+    "518 aggregate descriptors compress away local temporal/rhythmic patterns.",
+    "Genre boundaries overlap, especially Folk, Experimental, Instrumental and Pop.",
+    "The official split is track-disjoint and harder than potentially ungrouped random image splits.",
+    "Only 6,339 training rows with most rows sharing similar engineered summary statistics."
+  ]
+}

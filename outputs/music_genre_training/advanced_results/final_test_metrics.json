@@ -1,0 +1,84 @@
+{
+  "dataset": "FMA Small",
+  "test_tracks": 785,
+  "feature_count": 551,
+  "model": "HistGradientBoosting with feature engineering + targeted train-only jitter",
+  "test_accuracy": 0.4713375796178344,
+  "test_macro_f1": 0.4667364531570994,
+  "classification_report": {
+    "Electronic": {
+      "precision": 0.5217391304347826,
+      "recall": 0.6,
+      "f1-score": 0.5581395348837209,
+      "support": 100.0
+    },
+    "Experimental": {
+      "precision": 0.3333333333333333,
+      "recall": 0.3617021276595745,
+      "f1-score": 0.3469387755102041,
+      "support": 94.0
+    },
+    "Folk": {
+      "precision": 0.1388888888888889,
+      "recall": 0.10204081632653061,
+      "f1-score": 0.11764705882352941,
+      "support": 98.0
+    },
+    "Hip-Hop": {
+      "precision": 0.693069306930693,
+      "recall": 0.7,
+      "f1-score": 0.6965174129353234,
+      "support": 100.0
+    },
+    "Instrumental": {
+      "precision": 0.5,
+      "recall": 0.51,
+      "f1-score": 0.504950495049505,
+      "support": 100.0
+    },
+    "International": {
+      "precision": 0.5824175824175825,
+      "recall": 0.5638297872340425,
+      "f1-score": 0.572972972972973,
+      "support": 94.0
+    },
+    "Pop": {
+      "precision": 0.33613445378151263,
+      "recall": 0.4,
+      "f1-score": 0.365296803652968,
+      "support": 100.0
+    },
+    "Rock": {
+      "precision": 0.6265060240963856,
+      "recall": 0.5252525252525253,
+      "f1-score": 0.5714285714285714,
+      "support": 99.0
+    },
+    "accuracy": 0.4713375796178344,
+    "macro avg": {
+      "precision": 0.4665110899853973,
+      "recall": 0.4703531570590841,
+      "f1-score": 0.4667364531570994,
+      "support": 785.0
+    },
+    "weighted avg": {
+      "precision": 0.4672739906903671,
+      "recall": 0.4713375796178344,
+      "f1-score": 0.4675961392938915,
+      "support": 785.0
+    }
+  },
+  "test_used_for_selection": false,
+  "params": {
+    "max_iter": 175,
+    "learning_rate": 0.09249521029256451,
+    "max_leaf_nodes": 24,
+    "min_samples_leaf": 25,
+    "l2_regularization": 2.5736848022558103,
+    "max_bins": 160
+  },
+  "augmented_classes": [
+    "Instrumental",
+    "Pop"
+  ]
+}

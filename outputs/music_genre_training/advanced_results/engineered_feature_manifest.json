@@ -1,0 +1,18 @@
+{
+  "original_features": 518,
+  "engineered_features": 33,
+  "total_features": 551,
+  "families": [
+    "chroma_cens",
+    "chroma_cqt",
+    "chroma_stft",
+    "mfcc",
+    "rmse",
+    "spectral_bandwidth",
+    "spectral_centroid",
+    "spectral_contrast",
+    "spectral_rolloff",
+    "tonnetz",
+    "zcr"
+  ]
+}

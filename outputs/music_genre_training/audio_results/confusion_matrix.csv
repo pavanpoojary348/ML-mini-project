@@ -1,0 +1,9 @@
+true/predicted,Electronic,Experimental,Folk,Hip-Hop,Instrumental,International,Pop,Rock
+Electronic,48,6,5,18,8,9,4,2
+Experimental,2,28,13,6,19,10,11,11
+Folk,0,21,27,1,5,20,6,20
+Hip-Hop,1,1,1,93,1,2,1,0
+Instrumental,2,13,40,1,31,5,7,1
+International,4,0,21,8,2,59,2,4
+Pop,6,1,12,23,3,11,26,18
+Rock,0,4,5,0,2,6,7,76

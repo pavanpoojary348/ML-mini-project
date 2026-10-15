@@ -1,0 +1,51 @@
+{
+  "dataset": "FMA Small",
+  "source": "tracks.csv + features.csv",
+  "official_split_tracks": {
+    "training_labels": 6339,
+    "validation_labels": 794,
+    "test_labels": 785
+  },
+  "feature_rows_matched": 7918,
+  "feature_count": 518,
+  "missing_feature_values": 0,
+  "missing_fraction": 0.0,
+  "class_counts": {
+    "Electronic": 800,
+    "Experimental": 790,
+    "Folk": 772,
+    "Hip-Hop": 795,
+    "Instrumental": 800,
+    "International": 796,
+    "Pop": 796,
+    "Rock": 790
+  },
+  "validation_class_counts": {
+    "Electronic": 100,
+    "Experimental": 99,
+    "Folk": 99,
+    "Hip-Hop": 100,
+    "Instrumental": 100,
+    "International": 100,
+    "Pop": 100,
+    "Rock": 96
+  },
+  "feature_families": [
+    "chroma_cens",
+    "chroma_cqt",
+    "chroma_stft",
+    "mfcc",
+    "rmse",
+    "spectral_bandwidth",
+    "spectral_centroid",
+    "spectral_contrast",
+    "spectral_rolloff",
+    "tonnetz",
+    "zcr"
+  ],
+  "target_notes": [
+    "Eight balanced target genres; genre labels are subjective and acoustically overlapping.",
+    "FMA Small has about 8,000 tracks; missing published feature rows reduce available tracks.",
+    "Use official validation/test splits; do not use test outcomes for feature or hyperparameter selection."
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "model": "AudioGenreCNN",
+  "dataset": "FMA Small",
+  "input": "5-second log-mel spectrogram crops from the 30-second MP3 tracks",
+  "best_epoch": 19,
+  "train_track_count": 6394,
+  "validation_track_count": 800,
+  "test_track_count": 800,
+  "segments_per_training_track_per_epoch": 3,
+  "validation_accuracy_at_best_epoch": 0.6,
+  "validation_macro_f1_at_best_epoch": 0.577011503043088,
+  "test_accuracy": 0.485,
+  "test_macro_f1": 0.47027722246468373,
+  "classes": [
+    "Electronic",
+    "Experimental",
+    "Folk",
+    "Hip-Hop",
+    "Instrumental",
+    "International",
+    "Pop",
+    "Rock"
+  ],
+  "test_classification_report": {
+    "Electronic": {
+      "precision": 0.7619047619047619,
+      "recall": 0.48,
+      "f1-score": 0.588957055214724,
+      "support": 100.0
+    },
+    "Experimental": {
+      "precision": 0.3783783783783784,
+      "recall": 0.28,
+      "f1-score": 0.3218390804597701,
+      "support": 100.0
+    },
+    "Folk": {
+      "precision": 0.21774193548387097,
+      "recall": 0.27,
+      "f1-score": 0.24107142857142858,
+      "support": 100.0
+    },
+    "Hip-Hop": {
+      "precision": 0.62,
+      "recall": 0.93,
+      "f1-score": 0.744,
+      "support": 100.0
+    },
+    "Instrumental": {
+      "precision": 0.43661971830985913,
+      "recall": 0.31,
+      "f1-score": 0.36257309941520466,
+      "support": 100.0
+    },
+    "International": {
+      "precision": 0.48360655737704916,
+      "recall": 0.59,
+      "f1-score": 0.5315315315315315,
+      "support": 100.0
+    },
+    "Pop": {
+      "precision": 0.40625,
+      "recall": 0.26,
+      "f1-score": 0.3170731707317073,
+      "support": 100.0
+    },
+    "Rock": {
+      "precision": 0.5757575757575758,
+      "recall": 0.76,
+      "f1-score": 0.6551724137931034,
+      "support": 100.0
+    },
+    "accuracy": 0.485,
+    "macro avg": {
+      "precision": 0.48503236590143695,
+      "recall": 0.485,
+      "f1-score": 0.47027722246468373,
+      "support": 800.0
+    },
+    "weighted avg": {
+      "precision": 0.48503236590143695,
+      "recall": 0.485,
+      "f1-score": 0.47027722246468373,
+      "support": 800.0
+    }
+  }
+}

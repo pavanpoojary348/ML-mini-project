@@ -1,0 +1,140 @@
+{
+  "common_test_track_count": 785,
+  "test_split": "official FMA Small",
+  "models": {
+    "Published-feature SVM (SVM_C3)": {
+      "accuracy": 0.4929936305732484,
+      "macro_f1": 0.489556430115833,
+      "classification_report": {
+        "Electronic": {
+          "precision": 0.5517241379310345,
+          "recall": 0.64,
+          "f1-score": 0.5925925925925926,
+          "support": 100.0
+        },
+        "Experimental": {
+          "precision": 0.32456140350877194,
+          "recall": 0.39361702127659576,
+          "f1-score": 0.3557692307692308,
+          "support": 94.0
+        },
+        "Folk": {
+          "precision": 0.24096385542168675,
+          "recall": 0.20408163265306123,
+          "f1-score": 0.22099447513812154,
+          "support": 98.0
+        },
+        "Hip-Hop": {
+          "precision": 0.7075471698113207,
+          "recall": 0.75,
+          "f1-score": 0.7281553398058253,
+          "support": 100.0
+        },
+        "Instrumental": {
+          "precision": 0.46153846153846156,
+          "recall": 0.42,
+          "f1-score": 0.4397905759162304,
+          "support": 100.0
+        },
+        "International": {
+          "precision": 0.6103896103896104,
+          "recall": 0.5,
+          "f1-score": 0.5497076023391813,
+          "support": 94.0
+        },
+        "Pop": {
+          "precision": 0.4,
+          "recall": 0.4,
+          "f1-score": 0.4,
+          "support": 100.0
+        },
+        "Rock": {
+          "precision": 0.6326530612244898,
+          "recall": 0.6262626262626263,
+          "f1-score": 0.6294416243654822,
+          "support": 99.0
+        },
+        "accuracy": 0.4929936305732484,
+        "macro avg": {
+          "precision": 0.4911722124781719,
+          "recall": 0.4917451600240354,
+          "f1-score": 0.489556430115833,
+          "support": 785.0
+        },
+        "weighted avg": {
+          "precision": 0.49199169825105654,
+          "recall": 0.4929936305732484,
+          "f1-score": 0.4906252898335977,
+          "support": 785.0
+        }
+      }
+    },
+    "BYOL-A embeddings + MLP": {
+      "accuracy": 0.5299363057324841,
+      "macro_f1": 0.5258913056543455,
+      "classification_report": {
+        "Electronic": {
+          "precision": 0.6261682242990654,
+          "recall": 0.67,
+          "f1-score": 0.6473429951690821,
+          "support": 100.0
+        },
+        "Experimental": {
+          "precision": 0.3563218390804598,
+          "recall": 0.32978723404255317,
+          "f1-score": 0.3425414364640884,
+          "support": 94.0
+        },
+        "Folk": {
+          "precision": 0.37142857142857144,
+          "recall": 0.3979591836734694,
+          "f1-score": 0.3842364532019704,
+          "support": 98.0
+        },
+        "Hip-Hop": {
+          "precision": 0.7692307692307693,
+          "recall": 0.8,
+          "f1-score": 0.7843137254901961,
+          "support": 100.0
+        },
+        "Instrumental": {
+          "precision": 0.37735849056603776,
+          "recall": 0.4,
+          "f1-score": 0.3883495145631068,
+          "support": 100.0
+        },
+        "International": {
+          "precision": 0.6176470588235294,
+          "recall": 0.6702127659574468,
+          "f1-score": 0.6428571428571429,
+          "support": 94.0
+        },
+        "Pop": {
+          "precision": 0.48,
+          "recall": 0.36,
+          "f1-score": 0.4114285714285714,
+          "support": 100.0
+        },
+        "Rock": {
+          "precision": 0.6060606060606061,
+          "recall": 0.6060606060606061,
+          "f1-score": 0.6060606060606061,
+          "support": 99.0
+        },
+        "accuracy": 0.5299363057324841,
+        "macro avg": {
+          "precision": 0.5255269449361298,
+          "recall": 0.5292524737167594,
+          "f1-score": 0.5258913056543455,
+          "support": 785.0
+        },
+        "weighted avg": {
+          "precision": 0.526406146258041,
+          "recall": 0.5299363057324841,
+          "f1-score": 0.5266574771147573,
+          "support": 785.0
+        }
+      }
+    }
+  }
+}

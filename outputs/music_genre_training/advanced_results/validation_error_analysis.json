@@ -1,0 +1,100 @@
+{
+  "best_params": {
+    "max_iter": 175,
+    "learning_rate": 0.09249521029256451,
+    "max_leaf_nodes": 24,
+    "min_samples_leaf": 25,
+    "l2_regularization": 2.5736848022558103,
+    "max_bins": 160
+  },
+  "weak_validation_classes_augmented": [
+    "Instrumental",
+    "Pop"
+  ],
+  "augmentation": "train-only Gaussian jittered replicas at 2.5% robust feature scale",
+  "synthetic_rows_added": 1596,
+  "baseline_validation": {
+    "accuracy": 0.5894206549118388,
+    "macro_f1": 0.5850305420241014
+  },
+  "augmented_validation": {
+    "accuracy": 0.5869017632241813,
+    "macro_f1": 0.5853404778874074
+  },
+  "augmentation_helped": true,
+  "class_errors": [
+    {
+      "genre": "Electronic",
+      "support": 100,
+      "recall": 0.67,
+      "f1": 0.5955555555555555,
+      "correct": 67,
+      "errors": 33,
+      "most_confused_as": "Experimental"
+    },
+    {
+      "genre": "Experimental",
+      "support": 99,
+      "recall": 0.6060606060606061,
+      "f1": 0.5309734513274337,
+      "correct": 60,
+      "errors": 39,
+      "most_confused_as": "Instrumental"
+    },
+    {
+      "genre": "Folk",
+      "support": 99,
+      "recall": 0.8181818181818182,
+      "f1": 0.7941176470588235,
+      "correct": 81,
+      "errors": 18,
+      "most_confused_as": "Pop"
+    },
+    {
+      "genre": "Hip-Hop",
+      "support": 100,
+      "recall": 0.64,
+      "f1": 0.6564102564102564,
+      "correct": 64,
+      "errors": 36,
+      "most_confused_as": "Electronic"
+    },
+    {
+      "genre": "Instrumental",
+      "support": 100,
+      "recall": 0.4,
+      "f1": 0.42780748663101603,
+      "correct": 40,
+      "errors": 60,
+      "most_confused_as": "Experimental"
+    },
+    {
+      "genre": "International",
+      "support": 100,
+      "recall": 0.67,
+      "f1": 0.7127659574468085,
+      "correct": 67,
+      "errors": 33,
+      "most_confused_as": "Electronic"
+    },
+    {
+      "genre": "Pop",
+      "support": 100,
+      "recall": 0.2,
+      "f1": 0.22857142857142856,
+      "correct": 20,
+      "errors": 80,
+      "most_confused_as": "Experimental"
+    },
+    {
+      "genre": "Rock",
+      "support": 96,
+      "recall": 0.71875,
+      "f1": 0.7340425531914894,
+      "correct": 69,
+      "errors": 27,
+      "most_confused_as": "Pop"
+    }
+  ],
+  "interpretation": "Augmentation selected by validation recall; validation examples were not included in augmented training."
+}
