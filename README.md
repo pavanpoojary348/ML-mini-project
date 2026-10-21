@@ -5,6 +5,7 @@
 [![Flask](https://img.shields.io/badge/Flask-3.0%2B-000000.svg)](https://flask.palletsprojects.com/)
 [![Accuracy](https://img.shields.io/badge/Song%20Accuracy-99.23%25-brightgreen.svg)](#benchmark-performance)
 [![Dataset](https://img.shields.io/badge/Dataset-GTZAN%20(10%20Genres)-orange.svg)](https://www.kaggle.com/datasets/andradaolteanu/gtzan-dataset-music-genre-classification)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](#-cloud--docker-deployment)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An end-to-end, high-accuracy Deep Learning system and interactive web application for **Automated Music Genre Classification**. Built using PyTorch, this project implements an **Enhanced Squeeze-and-Excitation CNN (SE-CNN)**, a fine-tuned **MobileNetV2** backbone, and a **Calibrated Soft-Voting Hybrid Ensemble** achieving up to **99.23% song-level classification accuracy** on the standard 10-genre GTZAN benchmark.
@@ -23,9 +24,12 @@ Inspired by and extending the research paper:
 - **Calibrated Multi-Segment Ensemble**: 30-second songs are partitioned into 3-second slices, preprocessed into 128-band Log-Mel spectrograms, independently evaluated, and fused via multi-segment confidence aggregation.
 - **Interactive Dark-Mode Web App**:
   - 🌊 **Real-Time Web Audio Waveform Visualizer**: Decode audio client-side, scrub tracks, and inspect waveforms with glowing neon visualizer effects.
-  - ⚡ **Instant Inference Engine**: Upload MP3, WAV, FLAC, or OGG files and receive top genre predictions and 10-class probability breakdowns.
+  - 🎙️ **Live Microphone Recording**: Record singing, whistling, or room audio directly in the browser via an in-memory 16-bit PCM WAV encoder and classify on the fly.
+  - ⚡ **1-Click Preloaded Audio Demos**: Test Classical, Metal, Disco, Blues, and Hip-Hop with one click without uploading files.
+  - 🔥 **Acoustic Mel Spectrogram Visualizer**: Renders the exact 128-band Log-Mel frequency spectrogram that the neural networks evaluate.
+  - ⏱️ **Acoustic Feature Profiler**: Computes Estimated Tempo (BPM), Spectral Brightness/Centroid (Hz), RMS Energy Level, and Dynamic Range (dB).
   - 📊 **Integrated Confusion Matrix & Benchmark Inspector**: View live performance metrics and inspect song-level confusion matrices directly in the browser.
-- **Production CLI**: Standalone Python command-line utility for batch or single-file genre tagging.
+- **Production-Ready & Cloud Deployable**: Dockerfile, `.dockerignore`, and `render.yaml` ready for instant deployment to Hugging Face Spaces, Render, or Docker.
 
 ---
 
@@ -73,8 +77,10 @@ The repository includes high-resolution confusion matrix visualizations generate
 
 ## 🏗️ Architecture & Preprocessing Pipeline
 
-```
-Raw Audio File (.mp3, .wav, .flac, .ogg)
+```text
+Raw Audio File (.mp3, .wav, .flac, .ogg, or live mic)
+   │
+   ├─► Acoustic Feature Extraction (Tempo BPM, Centroid Hz, RMS, Dynamic Range)
    │
    ▼
 Audio Preprocessing (torchaudio / soundfile)
@@ -100,7 +106,7 @@ Enhanced SE-CNN (45% Weight)      MobileNetV2 (55% Weight)
                     ▼
        Song-Level Average Fusion
                     ▼
-     Predicted Genre + Probabilities
+     Predicted Genre + Probabilities + Mel Spectrogram Heatmap
 ```
 
 ---
@@ -135,10 +141,35 @@ Open your browser and navigate to:
 ```
 http://localhost:5000
 ```
-- Drag and drop any audio track (`.mp3`, `.wav`, `.flac`, `.ogg`).
-- Play, pause, and inspect the real-time audio waveform.
-- Click **"Identify Genre"** to run inference across the dual neural ensemble.
-- Explore the confusion matrices and per-genre metrics directly below the prediction card.
+- **Upload** any audio track (`.mp3`, `.wav`, `.flac`, `.ogg`).
+- **Or Record** live via your microphone directly in the browser.
+- **Or Test** using 1-click preloaded demo tracks (Classical, Metal, Disco, Blues, Hip-Hop).
+- Click **"Identify Genre"** to view predictions, 128-band Mel spectrogram, acoustic metrics (BPM, brightness, RMS), and confusion matrices.
+
+---
+
+## 🐳 Cloud & Docker Deployment
+
+### Run Locally via Docker
+```bash
+# Build the Docker image
+docker build -t music-genre-app .
+
+# Run container on port 5000
+docker run -p 5000:5000 music-genre-app
+```
+Access at `http://localhost:5000`.
+
+### Deploy to Hugging Face Spaces (Free Cloud Hosting)
+1. Create a new Space on [Hugging Face Spaces](https://huggingface.co/spaces).
+2. Select **Docker** as the SDK.
+3. Push this repository to your Hugging Face Space repository.
+4. Your AI app is instantly live with a public URL!
+
+### Deploy to Render
+1. Create a free account at [Render.com](https://render.com/).
+2. Select **New Web Service** and connect your GitHub repo.
+3. Render automatically detects `render.yaml` and deploys using the Dockerfile.
 
 ---
 
@@ -173,39 +204,21 @@ Detailed Probability Distribution:
 
 ---
 
-## 🧪 Training & Preprocessing (Reproducibility)
-
-To retrain the models from scratch on the GTZAN dataset:
-
-1. **Download GTZAN**: Place the `genres_original` audio files into `data/gtzan/Data/genres_original/`.
-2. **Precompute 3-Second Mel Spectrograms**:
-   ```bash
-   python gtzan_project/preprocess_3s_mels.py
-   ```
-   This generates `data/gtzan/mel_spectrograms_3s.npz` containing normalized (128, 130) spectrogram slices with leakage-free song IDs.
-
-3. **Train SE-CNN and MobileNetV2**:
-   ```bash
-   python gtzan_project/train_high_acc.py
-   ```
-   This runs:
-   - SE-CNN training (CosAnnealingLR, AdamW, EarlyStopping)
-   - MobileNetV2 training
-   - Segment-level and song-level ensemble evaluations
-   - Confusion matrix and benchmark plot generation in `results_gtzan_high_acc/`
-
----
-
 ## 📁 Repository Structure
 
 ```text
 ML-mini-project/
-├── app.py                          # Flask web server with prediction API & metrics routes
+├── Dockerfile                      # Production container image setup
+├── .dockerignore                   # Excludes caches and large datasets from build
+├── render.yaml                     # Cloud deployment configuration for Render
+├── app.py                          # Flask web server with prediction API & spectrogram engine
 ├── predict_genre.py                # Standalone CLI prediction utility
 ├── requirements.txt                # Unified Python package dependencies
 ├── README.md                       # Comprehensive project documentation
 ├── templates/
-│   └── index.html                  # Dark-mode Web UI with Waveform visualizer & CM tabs
+│   └── index.html                  # Dark-mode Web UI with Waveform, Mic recorder, & CM tabs
+├── static/
+│   └── demos/                      # Preloaded 1-click audio demo samples (Classical, Metal, etc.)
 ├── gtzan_project/
 │   ├── models.py                   # PyTorch architectures: EnhancedSECNN, MobileNetV2, SEBlock
 │   ├── dataset.py                  # GTZAN3SecMelDataset & leak-free song-level dataloader

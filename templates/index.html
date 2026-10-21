@@ -4,8 +4,8 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI Music Genre Classifier | Deep Learning Audio Analyzer</title>
-  <meta name="description" content="State-of-the-art AI Music Genre Classification powered by Squeeze-and-Excitation CNN and MobileNetV2 with real-time waveform visualizer and confusion matrix explorer."/>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <meta name="description" content="AI Music Genre Classification powered by SE-CNN and MobileNetV2 with live mic recording, waveform visualizer, Mel spectrogram analysis, and confusion matrix explorer."/>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
   <style>
     :root {
       --bg-dark: #080718;
@@ -17,8 +17,9 @@
       --accent-cyan: #22d3ee;
       --accent-emerald: #34d399;
       --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
       --text-main: #f8fafc;
-      --text-muted: rgba(255, 255, 255, 0.6);
+      --text-muted: rgba(255, 255, 255, 0.65);
       --text-sub: rgba(255, 255, 255, 0.4);
     }
 
@@ -26,7 +27,7 @@
     
     body {
       font-family: "Outfit", sans-serif;
-      background: radial-gradient(ellipse at 50% 0%, #17113e 0%, var(--bg-dark) 70%);
+      background: radial-gradient(ellipse at 50% 0%, #1a124a 0%, var(--bg-dark) 70%);
       background-attachment: fixed;
       min-height: 100vh;
       color: var(--text-main);
@@ -34,7 +35,7 @@
       line-height: 1.5;
     }
 
-    /* Ambient stars & nebula background */
+    /* Ambient stars background */
     body::before {
       content: "";
       position: fixed;
@@ -51,7 +52,7 @@
       align-items: center;
       justify-content: space-between;
       padding: 18px 40px;
-      background: rgba(8, 7, 24, 0.8);
+      background: rgba(8, 7, 24, 0.85);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid rgba(139, 92, 246, 0.2);
     }
@@ -61,7 +62,6 @@
       gap: 12px;
       font-size: 1.35rem;
       font-weight: 800;
-      letter-spacing: -0.5px;
       background: linear-gradient(135deg, #fff, #c4b5fd);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -99,7 +99,7 @@
     main {
       position: relative;
       z-index: 10;
-      max-width: 900px;
+      max-width: 920px;
       margin: 0 auto;
       padding: 40px 20px 80px 20px;
     }
@@ -109,7 +109,7 @@
       margin-bottom: 36px;
     }
     h1 {
-      font-size: 3rem;
+      font-size: 3.1rem;
       font-weight: 900;
       letter-spacing: -1px;
       line-height: 1.15;
@@ -122,8 +122,42 @@
     .subtitle {
       color: var(--text-muted);
       font-size: 1.05rem;
-      max-width: 680px;
+      max-width: 700px;
       margin: 0 auto;
+    }
+
+    /* Input Action Toolbar (Upload / Mic Recording) */
+    .input-mode-bar {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+    .mode-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(139, 92, 246, 0.3);
+      color: var(--text-muted);
+      padding: 10px 24px;
+      border-radius: 14px;
+      font-family: "Outfit", sans-serif;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.25s;
+    }
+    .mode-btn:hover {
+      background: rgba(139, 92, 246, 0.15);
+      color: #fff;
+      border-color: #a78bfa;
+    }
+    .mode-btn.active {
+      background: linear-gradient(135deg, #7c3aed, #4f46e5);
+      border-color: #a78bfa;
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
     }
 
     /* Upload Box */
@@ -132,7 +166,7 @@
       backdrop-filter: blur(20px);
       border: 2px dashed var(--card-border);
       border-radius: 24px;
-      padding: 46px 28px;
+      padding: 44px 28px;
       text-align: center;
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -146,8 +180,8 @@
       box-shadow: 0 15px 50px rgba(139, 92, 246, 0.25);
     }
     .upload-icon {
-      font-size: 3.8rem;
-      margin-bottom: 14px;
+      font-size: 3.6rem;
+      margin-bottom: 12px;
       display: inline-block;
       transition: transform 0.3s ease;
       filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.7));
@@ -158,7 +192,7 @@
     .upload-card h2 {
       font-size: 1.35rem;
       font-weight: 700;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .upload-card p {
       color: var(--text-sub);
@@ -176,7 +210,7 @@
       display: flex;
       gap: 8px;
       justify-content: center;
-      margin-top: 20px;
+      margin-top: 18px;
       flex-wrap: wrap;
     }
     .fmt-tag {
@@ -188,6 +222,112 @@
       color: rgba(255, 255, 255, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.08);
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Microphone Recording Box */
+    .record-card {
+      display: none;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      border: 2px dashed rgba(244, 63, 94, 0.4);
+      border-radius: 24px;
+      padding: 44px 28px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      animation: fadeIn 0.3s ease;
+    }
+    .record-card.show { display: block; }
+    .rec-indicator {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: rgba(244, 63, 94, 0.15);
+      border: 2px solid #f43f5e;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      color: #f43f5e;
+      margin-bottom: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .rec-indicator.recording {
+      animation: pulseRecord 1.2s infinite;
+      background: rgba(244, 63, 94, 0.3);
+      box-shadow: 0 0 30px rgba(244, 63, 94, 0.8);
+    }
+    @keyframes pulseRecord {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .rec-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f43f5e;
+      margin: 10px 0;
+    }
+    .rec-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 18px;
+    }
+    .btn-rec-action {
+      padding: 10px 24px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      font-family: "Outfit", sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-rec-start {
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(244, 63, 94, 0.4);
+    }
+    .btn-rec-stop {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Preloaded Demo Tracks Row */
+    .demo-bar {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .demo-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .demo-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .demo-btn:hover {
+      background: rgba(139, 92, 246, 0.2);
+      border-color: #a78bfa;
+      color: #fff;
+      transform: translateY(-1px);
     }
 
     /* Waveform & Audio Player Card */
@@ -202,9 +342,7 @@
       box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(139, 92, 246, 0.05);
       animation: fadeIn 0.4s ease;
     }
-    .visualizer-card.show {
-      display: block;
-    }
+    .visualizer-card.show { display: block; }
     .vis-header {
       display: flex;
       align-items: center;
@@ -218,9 +356,7 @@
       align-items: center;
       gap: 12px;
     }
-    .file-chip-icon {
-      font-size: 1.6rem;
-    }
+    .file-chip-icon { font-size: 1.6rem; }
     .file-meta-name {
       font-weight: 700;
       font-size: 0.95rem;
@@ -245,9 +381,7 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    .btn-remove:hover {
-      background: rgba(239, 68, 68, 0.25);
-    }
+    .btn-remove:hover { background: rgba(239, 68, 68, 0.25); }
 
     /* Waveform Canvas Container */
     .canvas-container {
@@ -326,9 +460,6 @@
     .audio-hint {
       font-size: 0.78rem;
       color: var(--text-sub);
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
     /* Predict Button */
@@ -349,7 +480,6 @@
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 8px 30px rgba(124, 58, 237, 0.45);
       position: relative;
-      overflow: hidden;
     }
     .btn-predict:hover:not(:disabled) {
       transform: translateY(-2px);
@@ -371,9 +501,7 @@
       padding: 40px 20px;
       text-align: center;
     }
-    .loading-card.show {
-      display: flex;
-    }
+    .loading-card.show { display: flex; }
     .spinner-disc {
       width: 54px;
       height: 54px;
@@ -391,9 +519,7 @@
       margin-top: 36px;
       animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .results-card.show {
-      display: block;
-    }
+    .results-card.show { display: block; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(24px); }
       to { opacity: 1; transform: translateY(0); }
@@ -401,7 +527,7 @@
 
     .top-result {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
     .genre-badge {
       display: inline-flex;
@@ -439,6 +565,85 @@
       margin-top: 8px;
     }
 
+    /* Acoustic Features Grid */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .feature-tile {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 16px;
+      padding: 18px;
+      backdrop-filter: blur(14px);
+    }
+    .feature-tile-header {
+      font-size: 0.76rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .feature-tile-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #60a5fa;
+      line-height: 1.2;
+    }
+    .feature-tile-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Mel Spectrogram Card */
+    .spec-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .spec-title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .spec-heading {
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .spec-img-wrapper {
+      background: #080718;
+      border-radius: 12px;
+      border: 1px solid rgba(139, 92, 246, 0.25);
+      padding: 10px;
+      display: inline-block;
+      max-width: 100%;
+    }
+    .spec-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      display: block;
+    }
+
+    /* Probability Breakdown */
     .breakdown-card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -489,7 +694,6 @@
       border-radius: 10px;
       transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
       min-width: 4px;
-      position: relative;
     }
     .bar-pct {
       width: 58px;
@@ -688,9 +892,7 @@
       cursor: zoom-in;
       transition: transform 0.2s;
     }
-    .cm-image-wrapper:hover {
-      transform: scale(1.01);
-    }
+    .cm-image-wrapper:hover { transform: scale(1.01); }
     .cm-img {
       max-width: 100%;
       height: auto;
@@ -768,9 +970,7 @@
       letter-spacing: 1px;
       font-weight: 700;
     }
-    .genre-table tr:hover td {
-      background: rgba(139, 92, 246, 0.05);
-    }
+    .genre-table tr:hover td { background: rgba(139, 92, 246, 0.05); }
     .pill {
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.78rem;
@@ -791,7 +991,6 @@
       border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    /* Keyframes */
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
@@ -808,7 +1007,7 @@
     </div>
     <div class="header-badges">
       <div class="badge badge-accuracy">★ 99.2% Song Accuracy</div>
-      <div class="badge badge-primary" id="device-badge">Model Ready</div>
+      <div class="badge badge-primary" id="device-badge">Ensemble Ready</div>
     </div>
   </header>
 
@@ -817,15 +1016,25 @@
     <div class="hero-section">
       <h1>What Genre Is Your Song?</h1>
       <p class="subtitle">
-        Upload any audio file to analyze its acoustic spectrogram in real time. Our dual SE-CNN + MobileNetV2 ensemble classifies 10 musical genres with industry-leading precision.
+        Upload or record any audio track. Our dual SE-CNN + MobileNetV2 ensemble extracts 128-band Mel spectrograms and acoustic features to classify 10 musical genres in real time.
       </p>
     </div>
 
-    <!-- Drag & Drop Upload Zone -->
+    <!-- Input Mode Switcher (Upload vs Microphone) -->
+    <div class="input-mode-bar">
+      <button class="mode-btn active" id="tab-mode-upload" onclick="setMode('upload')">
+        📁 File Upload
+      </button>
+      <button class="mode-btn" id="tab-mode-record" onclick="setMode('record')">
+        🎙️ Live Microphone Recording
+      </button>
+    </div>
+
+    <!-- 1. Drag & Drop Upload Zone -->
     <div class="upload-card" id="drop-zone">
       <div class="upload-icon">🎧</div>
       <h2>Drag & Drop your audio file here</h2>
-      <p>or click anywhere to browse from your computer</p>
+      <p>or click anywhere to browse from your device</p>
       <div class="formats">
         <span class="fmt-tag">.MP3</span>
         <span class="fmt-tag">.WAV</span>
@@ -833,7 +1042,45 @@
         <span class="fmt-tag">.OGG</span>
         <span class="fmt-tag">Max 50 MB</span>
       </div>
-      <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg"/>
+      <input type="file" id="file-input" accept=".mp3,.wav,.flac,.ogg,.m4a"/>
+    </div>
+
+    <!-- 2. Live Microphone Recording Zone -->
+    <div class="record-card" id="record-card">
+      <div class="rec-indicator" id="rec-indicator" onclick="toggleRecording()">
+        🎙️
+      </div>
+      <h2 id="rec-heading">Click to Start Recording</h2>
+      <p id="rec-subtext">Sing, play an instrument, or capture music from your room</p>
+      <div class="rec-timer" id="rec-timer">00:00 / 00:15</div>
+      <div class="rec-actions">
+        <button class="btn-rec-action btn-rec-start" id="btn-rec-start" onclick="startRecording()">
+          ▶ Start Recording
+        </button>
+        <button class="btn-rec-action btn-rec-stop" id="btn-rec-stop" style="display:none;" onclick="stopRecording()">
+          ⏹ Stop & Classify
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Preloaded Demo Audio Samples Row -->
+    <div class="demo-bar">
+      <span class="demo-label">⚡ Or try a 1-click demo:</span>
+      <button class="demo-btn" onclick="loadDemo('/static/demos/classical_demo.wav', 'Classical Piano Demo.wav')">
+        🎻 Classical Demo
+      </button>
+      <button class="demo-btn" onclick="loadDemo('/static/demos/metal_demo.wav', 'Metal Power Riff Demo.wav')">
+        ⚡ Metal Demo
+      </button>
+      <button class="demo-btn" onclick="loadDemo('/static/demos/disco_demo.wav', 'Disco 4-on-Floor Demo.wav')">
+        🪩 Disco Demo
+      </button>
+      <button class="demo-btn" onclick="loadDemo('/static/demos/blues_demo.wav', 'Blues Shuffle Demo.wav')">
+        🎸 Blues Demo
+      </button>
+      <button class="demo-btn" onclick="loadDemo('/static/demos/hiphop_demo.wav', 'Hip-Hop 808 Groove Demo.wav')">
+        🎤 Hip-Hop Demo
+      </button>
     </div>
 
     <!-- Waveform Visualizer & Audio Player Card -->
@@ -868,7 +1115,7 @@
         </div>
       </div>
 
-      <!-- Hidden Native Audio Element -->
+      <!-- Native Audio Element -->
       <audio id="native-audio" preload="metadata"></audio>
     </div>
 
@@ -881,7 +1128,7 @@
     <div class="loading-card" id="loading">
       <div class="spinner-disc"></div>
       <p style="color:var(--text-muted); font-size:1rem; font-weight:500;">
-        Extracting 128-band Mel Spectrogram & Evaluating Ensemble...
+        Computing Log-Mel Spectrogram & Evaluating Dual Ensemble...
       </p>
     </div>
 
@@ -890,6 +1137,7 @@
 
     <!-- Prediction Results Card -->
     <div class="results-card" id="results">
+      <!-- Top Result -->
       <div class="top-result">
         <div class="genre-badge">
           <div class="genre-label">Top Predicted Genre</div>
@@ -898,6 +1146,46 @@
         </div>
       </div>
 
+      <!-- Acoustic Features Grid -->
+      <div class="features-grid" id="features-grid">
+        <div class="feature-tile">
+          <div class="feature-tile-header">⏱️ Estimated Tempo</div>
+          <div class="feature-tile-val" id="feat-bpm">— BPM</div>
+          <div class="feature-tile-desc">Rhythmic onset pulse</div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-tile-header">💡 Spectral Brightness</div>
+          <div class="feature-tile-val" id="feat-centroid">— Hz</div>
+          <div class="feature-tile-desc" id="feat-brightness-desc">Acoustic balance</div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-tile-header">⚡ RMS Energy Level</div>
+          <div class="feature-tile-val" id="feat-rms">—</div>
+          <div class="feature-tile-desc">Signal root-mean-square</div>
+        </div>
+        <div class="feature-tile">
+          <div class="feature-tile-header">🌊 Dynamic Range</div>
+          <div class="feature-tile-val" id="feat-dyn">—</div>
+          <div class="feature-tile-desc">Peak-to-average loudness</div>
+        </div>
+      </div>
+
+      <!-- Mel Spectrogram Heatmap -->
+      <div class="spec-card">
+        <div class="spec-title-bar">
+          <div class="spec-heading">
+            <span>🔥</span> Acoustic Mel Spectrogram (AI Input)
+          </div>
+          <span style="font-size:0.75rem; color:var(--text-sub); font-family:'JetBrains Mono',monospace;">
+            128 Mel Bins &bull; 2048 FFT &bull; Log-dB Scaled
+          </span>
+        </div>
+        <div class="spec-img-wrapper">
+          <img id="spectrogram-img" class="spec-img" src="" alt="Acoustic Mel Spectrogram"/>
+        </div>
+      </div>
+
+      <!-- 10-Genre Probability Breakdown -->
       <div class="breakdown-card">
         <div class="chart-title">
           <span>Full 10-Genre Probability Breakdown</span>
@@ -909,11 +1197,11 @@
 
     <!-- Try Another Song Button -->
     <div class="try-again-section" id="try-again">
-      <button class="btn-try" onclick="resetAll()">⟳ Try another song</button>
+      <button class="btn-try" onclick="resetAll()">⟳ Analyze another song</button>
     </div>
 
     <!-- ==============================================================
-         MODEL PERFORMANCE & CONFUSION MATRIX VIEWER
+         MODEL EVALUATION & CONFUSION MATRIX VIEWER
          ============================================================== -->
     <section class="evaluation-section">
       <div class="section-header">
@@ -1030,11 +1318,11 @@
 
   <script>
     let selectedFile = null;
-    let audioBufferData = null;
     let peaks = [];
     const COLORS = ["c0","c1","c2","c3","c4","c5","c6","c7","c8","c9"];
 
     const dropZone = document.getElementById("drop-zone");
+    const recordCard = document.getElementById("record-card");
     const fileInput = document.getElementById("file-input");
     const visCard = document.getElementById("vis-card");
     const nativeAudio = document.getElementById("native-audio");
@@ -1043,6 +1331,169 @@
     const canvasContainer = document.getElementById("canvas-container");
     const ctx = canvas.getContext("2d");
     const laserScan = document.getElementById("laser-scan");
+
+    // Mode Switching
+    function setMode(mode) {
+      if (mode === 'upload') {
+        document.getElementById("tab-mode-upload").classList.add("active");
+        document.getElementById("tab-mode-record").classList.remove("active");
+        dropZone.style.display = "block";
+        recordCard.classList.remove("show");
+      } else {
+        document.getElementById("tab-mode-record").classList.add("active");
+        document.getElementById("tab-mode-upload").classList.remove("active");
+        dropZone.style.display = "none";
+        recordCard.classList.add("show");
+      }
+    }
+
+    // ==============================================================
+    // 🎙️ IN-BROWSER MICROPHONE RECORDING (Pure PCM WAV Encoder)
+    // ==============================================================
+    let micStream = null;
+    let audioContext = null;
+    let scriptProcessor = null;
+    let recordedChunks = [];
+    let recTimerInterval = null;
+    let recStartTime = null;
+    const MAX_REC_SECONDS = 15;
+
+    async function startRecording() {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioContext.createMediaStreamSource(micStream);
+        
+        // 4096 buffer size, 1 input channel, 1 output channel
+        scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
+        recordedChunks = [];
+
+        scriptProcessor.onaudioprocess = e => {
+          const input = e.inputBuffer.getChannelData(0);
+          recordedChunks.push(new Float32Array(input));
+        };
+
+        source.connect(scriptProcessor);
+        scriptProcessor.connect(audioContext.destination);
+
+        // UI state
+        document.getElementById("rec-indicator").classList.add("recording");
+        document.getElementById("btn-rec-start").style.display = "none";
+        document.getElementById("btn-rec-stop").style.display = "inline-block";
+        document.getElementById("rec-heading").textContent = "Recording in progress...";
+        document.getElementById("rec-subtext").textContent = "Speak, sing, or play music into your microphone";
+
+        recStartTime = Date.now();
+        recTimerInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - recStartTime) / 1000);
+          document.getElementById("rec-timer").textContent = `00:${elapsed < 10 ? '0' : ''}${elapsed} / 00:${MAX_REC_SECONDS}`;
+          if (elapsed >= MAX_REC_SECONDS) {
+            stopRecording();
+          }
+        }, 200);
+
+      } catch (err) {
+        alert("Microphone access was denied or is unavailable: " + err.message);
+      }
+    }
+
+    function stopRecording() {
+      if (!audioContext) return;
+      clearInterval(recTimerInterval);
+
+      if (scriptProcessor) scriptProcessor.disconnect();
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+
+      const sampleRate = audioContext.sampleRate;
+      const wavBlob = encodeWAV(recordedChunks, sampleRate);
+      audioContext.close();
+      audioContext = null;
+
+      // Reset UI
+      document.getElementById("rec-indicator").classList.remove("recording");
+      document.getElementById("btn-rec-start").style.display = "inline-block";
+      document.getElementById("btn-rec-stop").style.display = "none";
+      document.getElementById("rec-heading").textContent = "Click to Start Recording";
+      document.getElementById("rec-subtext").textContent = "Capture music directly from your room";
+
+      const file = new File([wavBlob], `mic_recording_${Date.now()}.wav`, { type: "audio/wav" });
+      handleFileSelect(file);
+
+      // Automatically run predict
+      setTimeout(() => {
+        runPredict();
+      }, 300);
+    }
+
+    function toggleRecording() {
+      if (document.getElementById("rec-indicator").classList.contains("recording")) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+
+    // Helper: Encode Float32 chunks into standard 16-bit PCM WAV
+    function encodeWAV(chunks, sampleRate) {
+      let totalLength = 0;
+      for (const c of chunks) totalLength += c.length;
+      const flat = new Float32Array(totalLength);
+      let offset = 0;
+      for (const c of chunks) {
+        flat.set(c, offset);
+        offset += c.length;
+      }
+
+      const buffer = new ArrayBuffer(44 + flat.length * 2);
+      const view = new DataView(buffer);
+
+      // Write RIFF header
+      writeString(view, 0, 'RIFF');
+      view.setUint32(4, 36 + flat.length * 2, true);
+      writeString(view, 8, 'WAVE');
+      writeString(view, 12, 'fmt ');
+      view.setUint32(16, 16, true); // Subchunk1Size
+      view.setUint16(20, 1, true);  // AudioFormat (PCM)
+      view.setUint16(22, 1, true);  // NumChannels (1 mono)
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true); // ByteRate
+      view.setUint16(32, 2, true);  // BlockAlign
+      view.setUint16(34, 16, true); // BitsPerSample
+      writeString(view, 36, 'data');
+      view.setUint32(40, flat.length * 2, true);
+
+      // Write PCM samples
+      let idx = 44;
+      for (let i = 0; i < flat.length; i++, idx += 2) {
+        const s = Math.max(-1, Math.min(1, flat[i]));
+        view.setInt16(idx, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      return new Blob([buffer], { type: "audio/wav" });
+    }
+
+    function writeString(view, offset, str) {
+      for (let i = 0; i < str.length; i++) {
+        view.setUint8(offset + i, str.charCodeAt(i));
+      }
+    }
+
+    // ==============================================================
+    // ⚡ PRELOADED 1-CLICK DEMO SAMPLES
+    // ==============================================================
+    async function loadDemo(url, name) {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const file = new File([blob], name, { type: "audio/wav" });
+        handleFileSelect(file);
+        // Automatically trigger inference
+        setTimeout(() => {
+          runPredict();
+        }, 200);
+      } catch (err) {
+        alert("Failed to load demo track: " + err.message);
+      }
+    }
 
     // Confusion Matrix mapping
     const CM_DATA = {
@@ -1106,7 +1557,6 @@
       document.getElementById("vis-file-name").textContent = file.name;
       document.getElementById("vis-file-size").textContent = (file.size / (1024 * 1024)).toFixed(2) + " MB";
       
-      // Attach to native audio
       const objectUrl = URL.createObjectURL(file);
       nativeAudio.src = objectUrl;
       btnPlay.textContent = "▶";
@@ -1117,7 +1567,6 @@
       document.getElementById("error-box").classList.remove("show");
       document.getElementById("try-again").classList.remove("show");
 
-      // Decode audio for waveform rendering
       decodeAndRenderWaveform(file);
     }
 
@@ -1126,17 +1575,12 @@
       try {
         const arrayBuffer = await file.arrayBuffer();
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        const audioCtx = new AudioContextClass();
-        const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-        audioBufferData = decoded;
-
-        // Generate discrete peak bars
+        const aCtx = new AudioContextClass();
+        const decoded = await aCtx.decodeAudioData(arrayBuffer);
         generatePeaks(decoded);
         drawWaveform(0);
-        audioCtx.close();
+        aCtx.close();
       } catch (err) {
-        console.warn("Could not decode audio data for waveform:", err);
-        // Fallback: generate pseudo random aesthetic waveform
         generateFallbackPeaks();
         drawWaveform(0);
       }
@@ -1147,7 +1591,6 @@
       const totalBars = 160;
       const step = Math.floor(channelData.length / totalBars);
       peaks = [];
-
       for (let i = 0; i < totalBars; i++) {
         let max = 0;
         const start = i * step;
@@ -1155,7 +1598,6 @@
           const val = Math.abs(channelData[start + j] || 0);
           if (val > max) max = val;
         }
-        // Normalize between 0.08 and 1.0
         peaks.push(Math.max(0.08, Math.min(1.0, max * 1.5)));
       }
     }
@@ -1167,7 +1609,7 @@
       }
     }
 
-    // Draw Waveform on Canvas with playhead tracking
+    // Draw Waveform on Canvas
     function drawWaveform(progress = 0) {
       const dpr = window.devicePixelRatio || 1;
       const width = canvasContainer.clientWidth;
@@ -1187,7 +1629,6 @@
       const effectiveBarWidth = Math.max(1.5, barWidth - gap);
       const midY = height / 2;
 
-      // Draw subtle centerline
       ctx.strokeStyle = "rgba(139, 92, 246, 0.15)";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -1211,11 +1652,9 @@
         }
 
         ctx.fillStyle = grad;
-        // Rounded bar
         drawRoundedRect(ctx, x, midY - barHeight / 2, effectiveBarWidth, barHeight, effectiveBarWidth / 2);
       }
 
-      // Draw playhead cursor
       if (progress > 0 && progress <= 1) {
         const cursorX = progress * width;
         ctx.shadowColor = "#22d3ee";
@@ -1239,7 +1678,6 @@
       context.fill();
     }
 
-    // Audio Playback Events
     function togglePlay() {
       if (!nativeAudio.src) return;
       if (nativeAudio.paused) {
@@ -1269,7 +1707,6 @@
       drawWaveform(0);
     });
 
-    // Click to seek on waveform
     canvasContainer.addEventListener("click", e => {
       if (!nativeAudio.duration) return;
       const rect = canvasContainer.getBoundingClientRect();
@@ -1343,6 +1780,21 @@
       document.getElementById("top-genre").textContent = data.top_genre.toUpperCase();
       document.getElementById("top-prob").textContent = data.top_prob.toFixed(1) + "%";
 
+      // Populate Acoustic Features
+      if (data.acoustic_features) {
+        document.getElementById("feat-bpm").textContent = data.acoustic_features.bpm + " BPM";
+        document.getElementById("feat-centroid").textContent = data.acoustic_features.brightness_hz + " Hz";
+        document.getElementById("feat-brightness-desc").textContent = data.acoustic_features.brightness_desc;
+        document.getElementById("feat-rms").textContent = data.acoustic_features.rms_energy.toFixed(3);
+        document.getElementById("feat-dyn").textContent = data.acoustic_features.dynamic_range_db;
+      }
+
+      // Populate Spectrogram Heatmap
+      if (data.spectrogram_b64) {
+        document.getElementById("spectrogram-img").src = "data:image/png;base64," + data.spectrogram_b64;
+      }
+
+      // Populate Probability Bars
       const list = document.getElementById("bar-list");
       list.innerHTML = "";
       data.all_genres.forEach((item, idx) => {
@@ -1360,12 +1812,10 @@
       document.getElementById("results").classList.add("show");
       document.getElementById("try-again").classList.add("show");
 
-      // Smooth scroll to results
       setTimeout(() => {
         document.getElementById("results").scrollIntoView({ behavior: "smooth", block: "nearest" });
       }, 100);
 
-      // Animate progress bars
       requestAnimationFrame(() => {
         document.querySelectorAll(".bar-fill").forEach(b => {
           b.style.width = Math.min(b.dataset.w, 100) + "%";

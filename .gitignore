@@ -4,6 +4,7 @@ fma_metadata/
 data/
 *.mp3
 *.wav
+!static/demos/*.wav
 
 # Local environments, downloaded models, and caches
 work/
