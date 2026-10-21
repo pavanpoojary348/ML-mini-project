@@ -1,0 +1,6 @@
+﻿{
+    "include": ["**/*.py"],
+    "extraPaths": ["."],
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "off"
+}

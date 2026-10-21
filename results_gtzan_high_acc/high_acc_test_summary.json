@@ -1,0 +1,95 @@
+{
+  "Enhanced SE-CNN": {
+    "segment_accuracy": 0.972972972972973,
+    "segment_macro_f1": 0.972940633848793,
+    "song_accuracy": 0.9922839506172839,
+    "song_macro_f1": 0.9922423443268619
+  },
+  "MobileNetV2": {
+    "segment_accuracy": 0.8948948948948949,
+    "segment_macro_f1": 0.8941805769502882,
+    "song_accuracy": 0.9228395061728395,
+    "song_macro_f1": 0.9223982721852858
+  },
+  "Hybrid Ensemble (SE-CNN + MobileNetV2)": {
+    "segment_accuracy": 0.9619619619619619,
+    "segment_macro_f1": 0.9617929244802562,
+    "song_accuracy": 0.9768518518518519,
+    "song_macro_f1": 0.9764429671921728,
+    "classification_report": {
+      "blues": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 67.0
+      },
+      "classical": {
+        "precision": 0.971830985915493,
+        "recall": 1.0,
+        "f1-score": 0.9857142857142858,
+        "support": 69.0
+      },
+      "country": {
+        "precision": 0.9459459459459459,
+        "recall": 1.0,
+        "f1-score": 0.9722222222222222,
+        "support": 70.0
+      },
+      "disco": {
+        "precision": 0.9696969696969697,
+        "recall": 0.9552238805970149,
+        "f1-score": 0.9624060150375939,
+        "support": 67.0
+      },
+      "hiphop": {
+        "precision": 0.9841269841269841,
+        "recall": 0.9841269841269841,
+        "f1-score": 0.9841269841269841,
+        "support": 63.0
+      },
+      "jazz": {
+        "precision": 1.0,
+        "recall": 0.9661016949152542,
+        "f1-score": 0.9827586206896551,
+        "support": 59.0
+      },
+      "metal": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 65.0
+      },
+      "pop": {
+        "precision": 0.9649122807017544,
+        "recall": 0.9016393442622951,
+        "f1-score": 0.9322033898305084,
+        "support": 61.0
+      },
+      "reggae": {
+        "precision": 0.984375,
+        "recall": 0.9692307692307692,
+        "f1-score": 0.9767441860465116,
+        "support": 65.0
+      },
+      "rock": {
+        "precision": 0.953125,
+        "recall": 0.9838709677419355,
+        "f1-score": 0.9682539682539683,
+        "support": 62.0
+      },
+      "accuracy": 0.9768518518518519,
+      "macro avg": {
+        "precision": 0.9774013166387148,
+        "recall": 0.9760193640874253,
+        "f1-score": 0.9764429671921728,
+        "support": 648.0
+      },
+      "weighted avg": {
+        "precision": 0.9771296687297674,
+        "recall": 0.9768518518518519,
+        "f1-score": 0.97672581451,
+        "support": 648.0
+      }
+    }
+  }
+}
