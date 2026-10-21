@@ -1,4 +1,4 @@
-﻿"""Flask web server for Music Genre Classification.
+"""Flask web server for Music Genre Classification.
 
 Run with:
     python app.py
@@ -9,7 +9,7 @@ Then open http://localhost:5000 in your browser.
 import os, sys, uuid, tempfile
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import torch, numpy as np
 import torch.nn.functional as F
 from gtzan_project.models import EnhancedSECNN, MobileNetV2Classifier
@@ -59,6 +59,19 @@ def run_inference(path):
 
 @app.route("/")
 def index(): return render_template("index.html")
+
+@app.route("/results/<path:filename>")
+def results_static(filename):
+    return send_from_directory(WEIGHTS_DIR, filename)
+
+@app.route("/api/metrics")
+def get_metrics():
+    summary_path = os.path.join(WEIGHTS_DIR, "high_acc_test_summary.json")
+    if os.path.exists(summary_path):
+        import json
+        with open(summary_path, "r", encoding="utf-8") as f:
+            return jsonify(json.load(f))
+    return jsonify({"error": "Metrics not found"}), 404
 
 @app.route("/predict", methods=["POST"])
 def predict():
