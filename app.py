@@ -1,18 +1,27 @@
-"""Flask web server for Music Genre Classification with Spectrogram & Acoustic Analysis.
+"""Flask Web Application for Music Genre Classification & Acoustic Analysis.
 
-Run with:
-    python app.py
-
-Then open http://localhost:5000 in your browser.
+Provides an interactive user interface:
+1. File upload (.mp3, .wav, .flac, .ogg) and live browser microphone recording.
+2. Dual-model ensemble genre classification with whole-song aggregation.
+3. Acoustic feature profiling: Estimated BPM, Spectral Centroid, RMS, Dynamic Range.
+4. Dynamic 128-band Log-Mel spectrogram visualization.
 """
 
-import os, sys, uuid, tempfile, io, base64
+import os
+import sys
+import uuid
+import tempfile
+import io
+import base64
+
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 from flask import Flask, request, jsonify, render_template, send_from_directory
-import torch, numpy as np
+import torch
+import numpy as np
 import torch.nn.functional as F
-import soundfile as sf, torchaudio
+import soundfile as sf
+import torchaudio
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -20,13 +29,26 @@ import matplotlib.pyplot as plt
 from gtzan_project.models import EnhancedSECNN, MobileNetV2Classifier
 from gtzan_project.dataset import GENRES
 
+
+# ==============================================================================
+# SECTION 1: FLASK APP CONFIGURATION & PRETRAINED MODEL LOADING
+# ==============================================================================
+# What it does:
+#   1. Initializes the Flask server and sets a 50MB max upload limit.
+#   2. Instantiates both EnhancedSECNN and MobileNetV2Classifier.
+#   3. Loads trained weights (best_secnn_3s.pt and best_mobilenet_3s.pt).
+#   4. Sets models to evaluation mode (model.eval()) and maps to CPU/CUDA.
+# ==============================================================================
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 WEIGHTS_DIR = os.path.join(os.path.dirname(__file__), "results_gtzan_high_acc")
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 def load_models():
+    """Instantiates models, loads trained weights, and sets eval mode."""
     secnn = EnhancedSECNN(num_classes=10, dropout_rate=0.0).to(DEVICE)
     mob   = MobileNetV2Classifier(num_classes=10, dropout_rate=0.0).to(DEVICE)
     for model, name in [(secnn, "best_secnn_3s.pt"), (mob, "best_mobilenet_3s.pt")]:
@@ -37,9 +59,23 @@ def load_models():
         model.eval()
     return secnn, mob
 
+
 print("Loading models...")
 SECNN, MOBILENET = load_models()
 print(f"Ready on {DEVICE}")
+
+
+# ==============================================================================
+# SECTION 2: ACOUSTIC FEATURE PROFILER (BPM, BRIGHTNESS, ENERGY)
+# ==============================================================================
+# What it does: Computes physical audio characteristics:
+#   1. RMS Energy: Root-mean-square amplitude measuring audio power.
+#   2. Dynamic Range: Ratio between peak audio amplitude and RMS level (in dB).
+#   3. Spectral Centroid (Brightness): Center of mass of the frequency spectrum;
+#      quantifies whether the music sounds dark/bass-heavy or bright/trebly.
+#   4. Tempo / BPM: Calculates onset autocorrelation over the short-term energy
+#      envelope to estimate beats per minute (BPM).
+# ==============================================================================
 
 def extract_acoustic_features(data, sr=22050):
     """Compute key acoustic descriptors: BPM, spectral centroid, RMS energy, dynamic range."""
@@ -47,7 +83,7 @@ def extract_acoustic_features(data, sr=22050):
     peak = float(np.max(np.abs(data)))
     dyn_range = round(float(20 * np.log10((peak + 1e-9) / (rms + 1e-9))), 1)
 
-    # Spectral Centroid (brightness in Hz)
+    # 1. Spectral Centroid Calculation (Brightness in Hz)
     clip_len = min(len(data), sr * 5)
     data_fft = data[:clip_len]
     mags = np.abs(np.fft.rfft(data_fft))
@@ -63,7 +99,7 @@ def extract_acoustic_features(data, sr=22050):
     else:
         desc = "Sharp & High-Energy (Aggressive)"
 
-    # Tempo / BPM estimation via energy envelope onset autocorrelation
+    # 2. Tempo / BPM Estimation via Energy Envelope Onset Autocorrelation
     frame_size = int(sr * 0.05)
     hop_size = int(sr * 0.02)
     fps = sr / hop_size
@@ -75,8 +111,8 @@ def extract_acoustic_features(data, sr=22050):
         onset = onset - np.mean(onset)
         corr = np.correlate(onset, onset, mode='full')
         corr = corr[len(onset)-1:]
-        min_lag = int(fps * 60 / 200) # max 200 BPM
-        max_lag = int(fps * 60 / 60)  # min 60 BPM
+        min_lag = int(fps * 60 / 200) # Maximum 200 BPM
+        max_lag = int(fps * 60 / 60)  # Minimum 60 BPM
         if max_lag < len(corr):
             lag = min_lag + np.argmax(corr[min_lag:max_lag])
             bpm = round(float(60 * fps / lag))
@@ -92,6 +128,15 @@ def extract_acoustic_features(data, sr=22050):
         "rms_energy": round(rms, 3),
         "dynamic_range_db": f"{dyn_range} dB"
     }
+
+
+# ==============================================================================
+# SECTION 3: MEL SPECTROGRAM IMAGE RENDERER
+# ==============================================================================
+# What it does: Takes the 128-band Log-Mel spectrogram evaluated by the model,
+# plots it using matplotlib with a dark theme, and converts it to a base64 string
+# so the web browser can display it instantly without saving temporary image files.
+# ==============================================================================
 
 def generate_spectrogram_image(first_chunk_db):
     """Render 128-band Log-Mel Spectrogram as base64-encoded PNG image."""
@@ -117,6 +162,19 @@ def generate_spectrogram_image(first_chunk_db):
     plt.savefig(buf, format="png", facecolor=fig.get_facecolor(), bbox_inches="tight", dpi=100)
     plt.close(fig)
     return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+
+# ==============================================================================
+# SECTION 4: DUAL-MODEL ENSEMBLE INFERENCE ENGINE
+# ==============================================================================
+# What it does:
+#   1. Ingests any audio file, downmixes to mono, and resamples to 22,050 Hz.
+#   2. Partitions audio into consecutive 3-second segments.
+#   3. For each segment, extracts 128-band Log-Mel spectrogram.
+#   4. Runs both Enhanced SE-CNN and MobileNetV2 and applies soft-voting:
+#      P_ens = 0.45 * P_secnn + 0.55 * P_mobilenet.
+#   5. Averages predictions across all segments for robust whole-song classification.
+# ==============================================================================
 
 def run_inference(path):
     """Run dual-model ensemble prediction and extract spectrogram & acoustic features."""
@@ -157,9 +215,12 @@ def run_inference(path):
                 mode="bilinear",
                 align_corners=False
             ).squeeze(0).repeat(3, 1, 1).unsqueeze(0).to(DEVICE)
+            
+            # Calibrated Soft-Voting Formula
             p = 0.45 * F.softmax(SECNN(t), 1).cpu().numpy()[0] + 0.55 * F.softmax(MOBILENET(t), 1).cpu().numpy()[0]
             probs.append(p)
 
+    # Whole-Song Average Aggregation
     avg = np.mean(probs, axis=0)
     genre_dict = {g: round(float(avg[i]) * 100, 2) for i, g in enumerate(GENRES)}
     spectrogram_b64 = generate_spectrogram_image(first_chunk_db)
@@ -172,16 +233,33 @@ def run_inference(path):
         "num_segments": num_chunks
     }
 
+
+# ==============================================================================
+# SECTION 5: FLASK WEB ROUTING & API ENDPOINTS
+# ==============================================================================
+# Endpoints:
+#   - GET /: Renders main interactive Web UI (index.html).
+#   - GET /results/<file>: Serves confusion matrices and benchmark charts.
+#   - GET /api/metrics: Returns JSON test summary metrics.
+#   - POST /predict: Accepts audio upload or live mic recording, runs inference,
+#     and returns predicted genre, confidence, features, and spectrogram.
+# ==============================================================================
+
 @app.route("/")
 def index():
+    """Renders the dark-mode web application."""
     return render_template("index.html")
+
 
 @app.route("/results/<path:filename>")
 def results_static(filename):
+    """Serves static benchmark assets (confusion matrices, comparison charts)."""
     return send_from_directory(WEIGHTS_DIR, filename)
+
 
 @app.route("/api/metrics")
 def get_metrics():
+    """Returns official test set benchmark metrics in JSON format."""
     summary_path = os.path.join(WEIGHTS_DIR, "high_acc_test_summary.json")
     if os.path.exists(summary_path):
         import json
@@ -189,8 +267,10 @@ def get_metrics():
             return jsonify(json.load(f))
     return jsonify({"error": "Metrics not found"}), 404
 
+
 @app.route("/predict", methods=["POST"])
 def predict():
+    """Handles audio upload or live microphone input, returning genre probabilities."""
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
     f = request.files["file"]
@@ -218,6 +298,11 @@ def predict():
         if os.path.exists(tmp):
             os.remove(tmp)
 
+
+# ==============================================================================
+# SECTION 6: ENTRY POINT
+# ==============================================================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
+    print(f"Starting server on http://localhost:{port}")
     app.run(host="0.0.0.0", port=port, debug=False)

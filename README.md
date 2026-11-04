@@ -204,6 +204,57 @@ Detailed Probability Distribution:
 
 ---
 
+## 📑 Academic Project Report Blueprint
+
+If you or a collaborator are preparing a project report, presentation, or research paper based on this repository, all the necessary academic and technical details are structured below:
+
+### 1. Abstract
+Automatic music genre classification plays a central role in digital audio streaming, recommendation algorithms, and music archival. In this work, an end-to-end deep learning pipeline is built to classify audio into 10 genres using the standard GTZAN benchmark. Raw waveforms are converted into 2D time-frequency representations (128-band Log-Mel Spectrograms) and evaluated using two complementary neural architectures: an **Enhanced Squeeze-and-Excitation CNN (SE-CNN)** with adaptive channel attention, and a fine-tuned **MobileNetV2** backbone. To eliminate data leakage, data is partitioned strictly at the whole-song level (70% train, 15% validation, 15% test). Predictions across 3-second segments are fused via calibrated soft-voting ($0.45 \times \text{SE-CNN} + 0.55 \times \text{MobileNetV2}$) and song-level mean pooling. The proposed Enhanced SE-CNN achieves **99.23% song-level test accuracy** (Macro F1: 99.22%), while the Hybrid Ensemble achieves **97.69%**. A production Flask web application with live microphone recording, real-time waveform inspection, and acoustic trait analysis (BPM, spectral centroid, RMS energy) is deployed to enable real-time inference.
+
+### 2. Mathematical & Algorithmic Formulations
+- **Log-Mel Filterbank Projection**:
+  Frequencies $f$ in Hertz are converted to the perceptual Mel scale via:
+  $$m = 2595 \cdot \log_{10}\left(1 + \frac{f}{700}\right)$$
+  Window size $N_{\text{FFT}} = 2048$, hop size $= 512$, with $128$ Mel frequency bins and decibel dynamic range threshold $\text{top\_db} = 80\text{ dB}$.
+- **Squeeze-and-Excitation (SE) Channel Attention**:
+  - *Squeeze*: Global Average Pooling compresses spatial dimensions $(H \times W)$ into a channel vector $z \in \mathbb{R}^C$:
+    $$z_c = \frac{1}{H \times W} \sum_{i=1}^{H}\sum_{j=1}^{W} x_c(i, j)$$
+  - *Excitation*: Two-layer MLP with reduction ratio $r=16$:
+    $$s = \sigma(W_2 \cdot \text{ReLU}(W_1 \cdot z))$$
+  - *Scale*: Channel-wise reweighting: $\tilde{X}_c = s_c \cdot X_c$.
+- **Soft-Voting Ensemble & Temporal Pooling**:
+  $$P_{\text{ensemble}}(k) = 0.45 \cdot P_{\text{SE-CNN}}(k) + 0.55 \cdot P_{\text{MobileNet}}(k)$$
+  $$\hat{Y}_{\text{song}} = \arg\max_{k \in \{1,\dots,10\}} \left( \frac{1}{S} \sum_{s=1}^{S} P_{\text{ensemble}, s}(k) \right)$$
+
+### 3. Training Hyperparameters
+
+| Hyperparameter | Enhanced SE-CNN | MobileNetV2 |
+| :--- | :--- | :--- |
+| **Optimizer** | AdamW | AdamW |
+| **Initial Learning Rate** | $1 \times 10^{-3}$ | $1 \times 10^{-4}$ (fine-tuning) |
+| **LR Schedule** | Cosine Annealing ($\eta_{\min} = 1 \times 10^{-6}$) | StepLR / Plateaus |
+| **Loss Function** | Cross-Entropy with Label Smoothing ($0.1$) | Cross-Entropy Loss |
+| **Batch Size** | 64 | 32 |
+| **Regularization** | Weight Decay ($1 \times 10^{-4}$), Dropout ($0.3$) | Dropout ($0.3$) |
+| **Data Augmentation** | SpecAugment (Time & Frequency Masking) | SpecAugment |
+
+### 4. Automated Slide Deck Generation
+To generate the companion **8-slide PowerPoint presentation** (`Music_Genre_Classification_Simple.pptx`):
+```bash
+python build_presentation.py
+```
+
+### 5. Model Retraining & Reproduction
+```bash
+# 1. Slice audio into 3-second Mel spectrograms
+python gtzan_project/preprocess_3s_mels.py
+
+# 2. Run complete training and evaluation pipeline
+python gtzan_project/train_high_acc.py
+```
+
+---
+
 ## 📁 Repository Structure
 
 ```text

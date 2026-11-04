@@ -1,9 +1,12 @@
 """Preprocess GTZAN audio tracks into 3-second Log-Mel Spectrogram segments.
 
-Each 30-second audio track is segmented into 10 non-overlapping 3-second chunks.
-For each chunk, computes a 128-band Log-Mel Spectrogram (dB scale) at 22,050 Hz.
-Saves the preprocessed data, genre labels, and song IDs into a compact .npz file
-for ultra-fast training and song-level ensemble evaluation.
+Audio Signal Processing Workflow:
+1. Resamples raw audio to standard 22,050 Hz mono.
+2. Segments each 30-second track into 10 non-overlapping 3-second slices (66,150 samples).
+3. Applies Short-Time Fourier Transform (STFT) with n_fft=2048 and hop_length=512.
+4. Projects frequencies onto 128 Mel frequency filter banks.
+5. Converts power amplitudes to logarithmic decibel scale (dB) with top_db=80.
+6. Saves processed arrays into a compressed NPZ file for ultra-fast training.
 """
 
 from __future__ import annotations
@@ -20,6 +23,18 @@ from tqdm import tqdm
 
 from gtzan_project.dataset import GENRE_TO_IDX, GENRES
 
+
+# ==============================================================================
+# SECTION 1: AUDIO SIGNAL PROCESSING CONSTANTS
+# ==============================================================================
+# - SAMPLE_RATE: 22,050 Hz is the standard Nyquist rate for music (covers up to 11 kHz).
+# - DURATION_PER_CHUNK: 3.0 seconds provides sufficient temporal context for rhythm.
+# - CHUNK_SAMPLES: 22050 * 3.0 = 66,150 audio sample points per segment.
+# - N_FFT: 2048-point Fast Fourier Transform gives high frequency resolution.
+# - HOP_LENGTH: 512 samples between consecutive Fourier frames (gives 130 time frames).
+# - N_MELS: 128 Mel bands map linear Hertz to the non-linear human auditory pitch scale.
+# ==============================================================================
+
 SAMPLE_RATE = 22050
 DURATION_PER_CHUNK = 3.0  # seconds
 CHUNK_SAMPLES = int(SAMPLE_RATE * DURATION_PER_CHUNK)  # 66,150 samples
@@ -28,6 +43,17 @@ N_FFT = 2048
 HOP_LENGTH = 512
 N_MELS = 128
 
+
+# ==============================================================================
+# SECTION 2: AUDIO SLICING & LOG-MEL EXTRACTION
+# ==============================================================================
+# What it does:
+#   1. Reads audio file using soundfile.
+#   2. Downmixes stereo to mono by averaging channels.
+#   3. Resamples to 22,050 Hz if needed.
+#   4. Loops 10 times to cut 10 consecutive 3-second chunks.
+#   5. Applies MelSpectrogram and AmplitudeToDB to generate (128, 130) matrices.
+# ==============================================================================
 
 def extract_chunks_mels(
     audio_path: Path,
@@ -40,19 +66,21 @@ def extract_chunks_mels(
     except Exception:
         return np.empty((0,)), False
 
+    # Convert stereo to mono
     if data.ndim > 1:
         data = data.mean(axis=1)
 
-    # Resample if sample rate differs
+    # Resample if original sample rate differs from 22,050 Hz
     if sr != SAMPLE_RATE:
         resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=SAMPLE_RATE)
         data = resampler(torch.from_numpy(data)).numpy()
 
-    # Audio length check
+    # Minimum audio length safety check
     if len(data) < CHUNK_SAMPLES:
         return np.empty((0,)), False
 
     chunks_mels = []
+    # Extract 10 consecutive non-overlapping 3-second slices
     for i in range(N_CHUNKS_PER_SONG):
         start = i * CHUNK_SAMPLES
         end = start + CHUNK_SAMPLES
@@ -61,13 +89,27 @@ def extract_chunks_mels(
         else:
             chunk = data[start:end]
 
-        chunk_tensor = torch.from_numpy(chunk).unsqueeze(0)  # (1, 66150)
-        mel_spec = mel_transform(chunk_tensor)               # (1, 128, 130)
-        log_mel = amplitude_to_db(mel_spec).squeeze(0).numpy() # (128, 130)
+        # Convert chunk to tensor: (1, 66150)
+        chunk_tensor = torch.from_numpy(chunk).unsqueeze(0)
+        # Compute Mel Spectrogram: (1, 128, 130)
+        mel_spec = mel_transform(chunk_tensor)
+        # Convert to Decibels (dB scale)
+        log_mel = amplitude_to_db(mel_spec).squeeze(0).numpy()
         chunks_mels.append(log_mel.astype(np.float32))
 
-    return np.stack(chunks_mels, axis=0), True  # (10, 128, 130)
+    return np.stack(chunks_mels, axis=0), True  # Shape: (10, 128, 130)
 
+
+# ==============================================================================
+# SECTION 3: BATCH DATASET PREPARATION & NPZ CACHING
+# ==============================================================================
+# What it does:
+#   1. Scans all 10 genre folders in `genres_original`.
+#   2. Iterates over 1,000 `.wav` files and tracks progress with tqdm.
+#   3. Generates 9,990 total 3-second spectrogram slices.
+#   4. Computes global dataset mean and standard deviation.
+#   5. Saves all arrays into a compressed `.npz` archive (~160 MB).
+# ==============================================================================
 
 def build_3s_mels_dataset(
     audio_root: Path,
@@ -79,6 +121,7 @@ def build_3s_mels_dataset(
     print("=" * 65)
     output_npz_path.parent.mkdir(parents=True, exist_ok=True)
 
+    # Torchaudio Mel transform
     mel_transform = torchaudio.transforms.MelSpectrogram(
         sample_rate=SAMPLE_RATE,
         n_fft=N_FFT,
@@ -96,6 +139,7 @@ def build_3s_mels_dataset(
     corrupted_count = 0
     t0 = time.time()
 
+    # Iterate through all 10 genre directories
     for genre in GENRES:
         genre_dir = audio_root / genre
         if not genre_dir.exists():
@@ -110,7 +154,7 @@ def build_3s_mels_dataset(
                 corrupted_count += 1
                 continue
 
-            # mels shape: (10, 128, 130)
+            # Store each 3s slice with its corresponding song ID and genre label
             for chunk_idx in range(mels.shape[0]):
                 all_specs.append(mels[chunk_idx])
                 all_labels.append(genre_idx)
@@ -118,7 +162,7 @@ def build_3s_mels_dataset(
 
             valid_songs_count += 1
 
-    specs_arr = np.stack(all_specs, axis=0)  # (N, 128, 130)
+    specs_arr = np.stack(all_specs, axis=0)  # Shape: (9990, 128, 130)
     labels_arr = np.array(all_labels, dtype=np.int64)
     song_ids_arr = np.array(all_song_ids)
 
@@ -127,11 +171,12 @@ def build_3s_mels_dataset(
     print(f"Total 3-sec spectrograms : {specs_arr.shape[0]}")
     print(f"Spectrogram shape per chunk : {specs_arr.shape[1:]}")
 
-    # Normalize globally (zero mean, unit variance)
+    # Compute global normalization constants across the whole dataset
     mean_val = float(specs_arr.mean())
     std_val = float(specs_arr.std())
     print(f"Global dataset stats: mean={mean_val:.2f}, std={std_val:.2f}")
 
+    # Save to compressed NPZ
     np.savez_compressed(
         output_npz_path,
         specs=specs_arr.astype(np.float32),

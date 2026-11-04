@@ -1,6 +1,6 @@
 """Inference Script for Music Genre Classification.
 
-Classifies any given audio track (.wav, .mp3) or spectrogram image (.png)
+Classifies any given audio track (.wav, .mp3, .flac) or spectrogram image (.png)
 into one of the 10 GTZAN genres using the trained Hybrid Ensemble model.
 
 Usage:
@@ -24,6 +24,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from gtzan_project.dataset import GENRES, NORM_MEAN, NORM_STD
 from gtzan_project.models import EnhancedSECNN, MobileNetV2Classifier
 
+
+# ==============================================================================
+# SECTION 1: MODEL LOADER
+# ==============================================================================
+# What it does: Loads the trained PyTorch checkpoint weights for both models
+# (best_secnn_3s.pt and best_mobilenet_3s.pt) into eval mode.
+# ==============================================================================
 
 def load_models(
     weights_dir: Path, device: torch.device
@@ -51,6 +58,18 @@ def load_models(
     mobilenet.eval()
     return secnn, mobilenet
 
+
+# ==============================================================================
+# SECTION 2: AUDIO INFERENCE PIPELINE
+# ==============================================================================
+# What it does:
+#   1. Reads input audio and resamples to 22,050 Hz mono.
+#   2. Splits into 3-second non-overlapping chunks.
+#   3. Generates 128-band Log-Mel spectrograms for each chunk.
+#   4. Evaluates both SE-CNN and MobileNetV2.
+#   5. Applies weighted soft-voting: 0.45 * SE-CNN + 0.55 * MobileNet.
+#   6. Averages probabilities across all chunks to determine overall track genre.
+# ==============================================================================
 
 def predict_audio(
     audio_path: Path,
@@ -102,18 +121,25 @@ def predict_audio(
             all_chunk_probs.append(p_ens)
 
     avg_probs = np.mean(all_chunk_probs, axis=0)
-    return {genre: float(avg_probs[idx]) for idx, genre in enumerate(GENRES)}
+    return {genre: float(avg_probs[i]) for i, genre in enumerate(GENRES)}
 
 
-def predict_image(
+# ==============================================================================
+# SECTION 3: SPECTROGRAM IMAGE INFERENCE
+# ==============================================================================
+# What it does: Enables direct evaluation if the user provides a pre-rendered
+# spectrogram PNG image rather than a raw audio file.
+# ==============================================================================
+
+def predict_spectrogram_image(
     image_path: Path,
     secnn: EnhancedSECNN,
     mobilenet: MobileNetV2Classifier,
     device: torch.device,
 ) -> Dict[str, float]:
-    """Predicts genre for a 224x224 RGB spectrogram image."""
+    """Classifies a pre-rendered 224x224 RGB spectrogram image."""
     img = Image.open(image_path).convert("RGB").resize((224, 224))
-    img_arr = np.array(img, dtype=np.float32) / 255.0
+    img_arr = np.array(img).astype(np.float32) / 255.0
     for c in range(3):
         img_arr[:, :, c] = (img_arr[:, :, c] - NORM_MEAN[c]) / NORM_STD[c]
     tensor = torch.from_numpy(img_arr).permute(2, 0, 1).unsqueeze(0).to(device)
@@ -123,43 +149,59 @@ def predict_image(
         p_mobile = F.softmax(mobilenet(tensor), dim=1).cpu().numpy()[0]
         p_ens = 0.45 * p_secnn + 0.55 * p_mobile
 
-    return {genre: float(p_ens[idx]) for idx, genre in enumerate(GENRES)}
+    return {genre: float(p_ens[i]) for i, genre in enumerate(GENRES)}
 
+
+# ==============================================================================
+# SECTION 4: CLI USER INTERFACE & REPORT FORMATTING
+# ==============================================================================
+# What it does: Parses command line arguments, prints a formatted table of
+# confidence scores with visual progress bars, and highlights the predicted genre.
+# ==============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Predict music genre for an audio file or spectrogram.")
-    parser.add_argument("--input", type=str, required=True, help="Path to audio file (.wav, .mp3) or spectrogram (.png)")
+    parser = argparse.ArgumentParser(description="Predict music genre from audio or spectrogram.")
+    parser.add_argument("--input", "-i", type=str, required=True, help="Path to audio file or spectrogram image")
     parser.add_argument("--weights-dir", type=str, default="results_gtzan_high_acc")
     args = parser.parse_args()
 
     input_path = Path(args.input)
     if not input_path.exists():
-        raise FileNotFoundError(f"Input file not found: {input_path}")
+        print(f"Error: Input file does not exist: {input_path}")
+        return
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    secnn, mobilenet = load_models(Path(args.weights_dir), device)
+    weights_dir = Path(args.weights_dir)
 
-    suffix = input_path.suffix.lower()
-    if suffix in [".wav", ".mp3", ".ogg", ".flac"]:
-        probabilities = predict_audio(input_path, secnn, mobilenet, device)
-    elif suffix in [".png", ".jpg", ".jpeg"]:
-        probabilities = predict_image(input_path, secnn, mobilenet, device)
+    print(f"\nLoading trained models from: {weights_dir}")
+    secnn, mobilenet = load_models(weights_dir, device)
+
+    # Route based on file extension
+    ext = input_path.suffix.lower()
+    if ext in [".wav", ".mp3", ".flac", ".ogg"]:
+        probs = predict_audio(input_path, secnn, mobilenet, device)
+    elif ext in [".png", ".jpg", ".jpeg"]:
+        probs = predict_spectrogram_image(input_path, secnn, mobilenet, device)
     else:
-        raise ValueError(f"Unsupported file format: {suffix}")
+        print(f"Error: Unsupported file format {ext}")
+        return
 
-    sorted_genres = sorted(probabilities.items(), key=lambda item: item[1], reverse=True)
-    top_genre, top_prob = sorted_genres[0]
+    sorted_probs = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+    top_genre, top_prob = sorted_probs[0]
 
-    print("\n" + "=" * 50)
-    print(f"File: {input_path.name}")
-    print(f"Top Predicted Genre : {top_genre.upper()} ({top_prob * 100:.2f}%)")
-    print("=" * 50)
-    print("Full Probability Breakdown:")
-    for genre, prob in sorted_genres:
-        bar_len = int(prob * 30)
-        bar_str = "#" * bar_len + "-" * (30 - bar_len)
-        print(f"  {genre:<12} | {bar_str} | {prob * 100:5.2f}%")
-    print("=" * 50 + "\n")
+    print("\n" + "=" * 60)
+    print("              MUSIC GENRE CLASSIFICATION RESULT             ")
+    print("=" * 60)
+    print(f"Input file:      {input_path.name}")
+    print(f"Hardware device: {device}")
+    print("-" * 60)
+    print(f"PREDICTED GENRE: {top_genre.upper()} (Confidence: {top_prob*100:.1f}%)")
+    print("-" * 60)
+    print("Detailed Probability Distribution:")
+    for rank, (genre, prob) in enumerate(sorted_probs, 1):
+        bar = "#" * int(prob * 20)
+        print(f"  {rank:2d}. {genre:<15} {prob*100:5.1f}% [{bar:<20}]")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

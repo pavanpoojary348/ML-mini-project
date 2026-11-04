@@ -1,8 +1,10 @@
-"""GTZAN Spectrogram Dataset Loader and Stratified Data Splits.
+"""GTZAN Spectrogram Dataset Loader, Augmentations, and Stratified Splits.
 
-Loads 224x224 RGB spectrogram images for the 10 GTZAN genres:
-blues, classical, country, disco, hiphop, jazz, metal, pop, reggae, rock.
-Includes data augmentation and stratified train/val/test splits.
+This module prepares audio data for training neural networks:
+1. Defines the 10 GTZAN genres and normalization constants.
+2. Implements PyTorch Dataset classes for both 30s images and 3s Log-Mel slices.
+3. Implements SpecAugment (Time & Frequency masking) for audio regularization.
+4. Provides stratified, leak-free train/val/test splits and PyTorch DataLoaders.
 """
 
 from __future__ import annotations
@@ -18,6 +20,14 @@ from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, Dataset
 import torch.nn.functional as F
 from torchvision import transforms
+
+
+# ==============================================================================
+# SECTION 1: GENRE LABELS & NORMALIZATION CONSTANTS
+# ==============================================================================
+# The GTZAN benchmark defines 10 musical genres (100 tracks per genre).
+# We map each genre string to an integer index (0-9) for classification.
+# ==============================================================================
 
 GENRES = [
     "blues",
@@ -35,13 +45,20 @@ GENRES = [
 GENRE_TO_IDX = {genre: idx for idx, genre in enumerate(GENRES)}
 IDX_TO_GENRE = {idx: genre for idx, genre in enumerate(GENRES)}
 
-# ImageNet normalization statistics (standard for MobileNetV2 and deep vision CNNs)
+# Standard ImageNet normalization statistics used by transfer learning backbones
 NORM_MEAN = [0.485, 0.456, 0.406]
 NORM_STD = [0.229, 0.224, 0.225]
 
 
+# ==============================================================================
+# SECTION 2: 30-SECOND FULL SPECTROGRAM DATASET (BASELINE LOADER)
+# ==============================================================================
+# What it does: Loads full 30-second pre-generated spectrogram PNG files from disk.
+# Used by the initial baseline CNN model.
+# ==============================================================================
+
 class GTZANSpectrogramDataset(Dataset):
-    """PyTorch Dataset for GTZAN Spectrogram PNG images."""
+    """PyTorch Dataset for full 30-second GTZAN Spectrogram PNG images."""
 
     def __init__(self, file_paths: List[Path], labels: List[int], transform=None):
         self.file_paths = file_paths
@@ -55,7 +72,7 @@ class GTZANSpectrogramDataset(Dataset):
         path = self.file_paths[idx]
         label = self.labels[idx]
 
-        # Convert image to RGB (original PNGs are RGBA)
+        # Convert image to 3-channel RGB
         image = Image.open(path).convert("RGB")
 
         if self.transform is not None:
@@ -64,8 +81,17 @@ class GTZANSpectrogramDataset(Dataset):
         return image, label
 
 
+# ==============================================================================
+# SECTION 3: IMAGE DATA AUGMENTATIONS
+# ==============================================================================
+# What it does: Applies subtle variations to prevent overfitting on images:
+#   - RandomCrop: simulates slight temporal shifts in music.
+#   - ColorJitter: simulates variation in recording loudness / dynamics.
+#   - Normalize: standardizes input distribution for stable gradient descent.
+# ==============================================================================
+
 def get_data_transforms() -> Tuple[transforms.Compose, transforms.Compose]:
-    """Returns training (with augmentation) and validation/testing transforms."""
+    """Returns training augmentations and validation/testing transforms."""
     train_transform = transforms.Compose([
         transforms.Resize((224, 224)),
         # Subtle horizontal shift / random crop to simulate temporal variation
@@ -85,6 +111,13 @@ def get_data_transforms() -> Tuple[transforms.Compose, transforms.Compose]:
     return train_transform, eval_transform
 
 
+# ==============================================================================
+# SECTION 4: STRATIFIED SPLITS (PREVENTING DATA LEAKAGE)
+# ==============================================================================
+# What it does: Partitions the 1,000 GTZAN tracks into Train (80%), Val (10%),
+# and Test (10%) splits while preserving balanced representation across all 10 genres.
+# ==============================================================================
+
 def get_gtzan_splits(
     data_dir: Path,
     train_ratio: float = 0.80,
@@ -92,7 +125,7 @@ def get_gtzan_splits(
     test_ratio: float = 0.10,
     random_seed: int = 42,
 ) -> Tuple[List[Path], List[int], List[Path], List[int], List[Path], List[int]]:
-    """Scans images_original directory and produces stratified train/val/test splits."""
+    """Scans spectrogram folder and creates stratified train/val/test splits."""
     images_dir = data_dir / "images_original" if (data_dir / "images_original").exists() else data_dir
     if not images_dir.exists():
         raise FileNotFoundError(f"GTZAN spectrogram directory not found at: {images_dir}")
@@ -142,7 +175,7 @@ def build_dataloaders(
     num_workers: int = 0,
     random_seed: int = 42,
 ) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """Constructs train, validation, and test PyTorch DataLoaders."""
+    """Constructs train, validation, and test PyTorch DataLoaders for 30s images."""
     train_paths, train_labels, val_paths, val_labels, test_paths, test_labels = get_gtzan_splits(
         data_dir, random_seed=random_seed
     )
@@ -180,6 +213,20 @@ def build_dataloaders(
     return train_loader, val_loader, test_loader
 
 
+# ==============================================================================
+# SECTION 5: 3-SECOND LOG-MEL DATASET & SPECAUGMENT
+# ==============================================================================
+# What it does:
+#   1. Slices songs into 10 chunks of 3 seconds (expanding dataset to 9,990 samples).
+#   2. Standardizes spectrograms using global dataset mean & std.
+#   3. Resizes to (224, 224) via bilinear interpolation.
+#   4. SpecAugment (Google Brain):
+#      - Frequency Masking: Randomly zeros out horizontal frequency bands.
+#      - Time Masking: Randomly zeros out vertical time frames.
+#      Forces model to learn multiple acoustic cues rather than relying on one riff.
+#   5. Repeats 1 channel to 3 channels to feed directly into CNN & MobileNetV2.
+# ==============================================================================
+
 class GTZAN3SecMelDataset(Dataset):
     """Dataset for 3-second Log-Mel Spectrogram segments (9,990 samples)."""
 
@@ -203,38 +250,45 @@ class GTZAN3SecMelDataset(Dataset):
         return len(self.labels)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, str]:
-        spec = self.specs[idx]  # (128, 130)
+        spec = self.specs[idx]  # Shape: (128 Mel bands, 130 time frames)
         label = int(self.labels[idx])
         song_id = str(self.song_ids[idx])
 
-        # Standardize
+        # Step 1: Global Z-Score Standardization
         spec = (spec - self.mean) / (self.std + 1e-6)
 
-        # Convert to tensor (1, 128, 130)
+        # Step 2: Convert to PyTorch Tensor (1, 128, 130)
         tensor = torch.from_numpy(spec).unsqueeze(0).float()
 
-        # Resize / interpolate to 224x224
+        # Step 3: Bilinear Interpolation to standard image size (224, 224)
         tensor = F.interpolate(tensor.unsqueeze(0), size=(224, 224), mode="bilinear", align_corners=False).squeeze(0)
 
-        # SpecAugment in training mode (Time & Frequency Masking)
+        # Step 4: SpecAugment Regularization (Active only during training)
         if self.is_train:
-            # Frequency masking (mask up to 16 bands)
+            # Frequency masking: Zero out up to 20 random frequency rows
             f_dim = tensor.shape[1]
             f_mask_len = torch.randint(4, 20, (1,)).item()
             f_start = torch.randint(0, f_dim - f_mask_len, (1,)).item()
             tensor[:, f_start : f_start + f_mask_len, :] = 0.0
 
-            # Time masking (mask up to 16 frames)
+            # Time masking: Zero out up to 20 random time columns
             t_dim = tensor.shape[2]
             t_mask_len = torch.randint(4, 20, (1,)).item()
             t_start = torch.randint(0, t_dim - t_mask_len, (1,)).item()
             tensor[:, :, t_start : t_start + t_mask_len] = 0.0
 
-        # Repeat to 3 channels for vision backbones (3, 224, 224)
+        # Step 5: Duplicate 1 channel to 3 channels for vision backbones (3, 224, 224)
         tensor = tensor.repeat(3, 1, 1)
 
         return tensor, label, song_id
 
+
+# ==============================================================================
+# SECTION 6: HIGH-ACCURACY 3-SECOND DATALOADERS
+# ==============================================================================
+# What it does: Loads the preprocessed NPZ archive and builds PyTorch DataLoaders
+# with strict stratified 80% train, 10% validation, and 10% test splits.
+# ==============================================================================
 
 def build_3s_dataloaders(
     npz_path: Path,
