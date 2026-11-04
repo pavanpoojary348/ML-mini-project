@@ -89,6 +89,8 @@ def run_live_training(from_scratch: bool = False, batches: int = 15):
     running_loss = 0.0
     running_correct = 0
     running_total = 0
+    cur_loss = 0.0
+    cur_acc = 0.0
     t0 = time.time()
 
     for b_idx, (images, targets, _) in enumerate(train_loader, 1):
@@ -144,8 +146,8 @@ def run_live_training(from_scratch: bool = False, batches: int = 15):
             val_correct += (preds == targets).sum().item()
             val_total += targets.size(0)
 
-    val_acc = val_correct / val_total
-    val_l = val_loss / val_total
+    val_acc = (val_correct / val_total) if val_total > 0 else 0.0
+    val_l = (val_loss / val_total) if val_total > 0 else 0.0
 
     print("-" * 74)
     print(f" [SUMMARY] Final Validation Loss: {val_l:.4f} | Validation Accuracy: {val_acc*100:.2f}%")

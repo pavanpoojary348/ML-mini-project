@@ -44,13 +44,13 @@ def load_models(
 
     if secnn_path.exists():
         ckpt = torch.load(secnn_path, map_location=device)
-        secnn.load_state_dict(ckpt["model_state_dict"])
+        secnn.load_state_dict(ckpt.get("model_state_dict", ckpt))
     else:
         print(f"[Warning] SECNN checkpoint not found at {secnn_path}")
 
     if mobilenet_path.exists():
         ckpt = torch.load(mobilenet_path, map_location=device)
-        mobilenet.load_state_dict(ckpt["model_state_dict"])
+        mobilenet.load_state_dict(ckpt.get("model_state_dict", ckpt))
     else:
         print(f"[Warning] MobileNetV2 checkpoint not found at {mobilenet_path}")
 
@@ -112,7 +112,7 @@ def predict_audio(
             # Global standardize (mean=4.88, std=15.84 from dataset statistics)
             norm_spec = (log_mel - 4.88) / 15.84
             spec_t = torch.from_numpy(norm_spec).unsqueeze(0).float()
-            spec_t = F.interpolate(spec_t.unsqueeze(0), size=(224, 224), mode="bilinear").squeeze(0)
+            spec_t = F.interpolate(spec_t.unsqueeze(0), size=(224, 224), mode="bilinear", align_corners=False).squeeze(0)
             spec_t = spec_t.repeat(3, 1, 1).unsqueeze(0).to(device)
 
             p_secnn = F.softmax(secnn(spec_t), dim=1).cpu().numpy()[0]

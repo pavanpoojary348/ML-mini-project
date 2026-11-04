@@ -286,7 +286,7 @@ def option_3_audio_classifier():
             log_mel = amp_to_db(mel_tf(chunk_t)).squeeze(0).numpy()
             s = (log_mel - 4.88) / 15.84
             spec_t = torch.from_numpy(s).unsqueeze(0).float()
-            spec_t = F.interpolate(spec_t.unsqueeze(0), size=(224, 224), mode="bilinear").squeeze(0)
+            spec_t = F.interpolate(spec_t.unsqueeze(0), size=(224, 224), mode="bilinear", align_corners=False).squeeze(0)
             spec_t = spec_t.repeat(3, 1, 1).unsqueeze(0).to(device)
             p = 0.45 * F.softmax(secnn(spec_t), dim=1).cpu().numpy()[0] + 0.55 * F.softmax(mobilenet(spec_t), dim=1).cpu().numpy()[0]
             probs.append(p)
